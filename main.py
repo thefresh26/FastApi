@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Body
 
 
 app = FastAPI()
@@ -41,14 +41,37 @@ def getCalificacion(id: int):
     
     
 @app.get('/ca/', tags=['Notas'])
-def get_calificacion(Estado: str): 
+def get_calificacion(Estado: str):
+    
+    resultado = []
+    
     for calificacion in notas:
-        if calificacion['Estado'] == Estado.lower():
-            return calificacion
+        if calificacion['Estado'].lower() == Estado.lower():
+            resultado.append(calificacion)
 
-    return []
+    return resultado
+
 
 
 @app.post('/notas', tags=['Notas'])
-def create_movie():
-    pass
+def create_nota(
+                id: int = Body(), 
+                matematicas: float = Body(),
+                español: float = Body(),
+                Ed_fisica: float = Body(),
+                sociales: float = Body(),
+                Promedio: float = Body(),
+                Estado: str = Body()
+                ):
+    
+    notas.append({
+        'id': id,
+        'matematica': matematicas,
+        'Epañol': español,
+        'Ed_Fisica': Ed_fisica,
+        'Sociales': sociales,
+        'Promedio': Promedio,
+        'Estado': Estado,
+    })
+    
+    return notas 

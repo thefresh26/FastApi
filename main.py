@@ -1,61 +1,77 @@
 from fastapi import FastAPI
-from pydantic import BaseModel #se crea para utilizar los items de manera interactiva
+from pydantic import BaseModel, Field #se crea para utilizar los items de manera interactiva
 from typing import Optional, List
+import datetime
+
 app = FastAPI()
 
-
-
-class Organized(BaseModel):
+class nota_mejorada(BaseModel):
     id: Optional[int] = None
     matematicas: float
     español: float
     ed_fisica: float
     sociales: float
+    profesor: str = Field(min_digits=6, max_length=15)
+    year: int = Field(le=datetime.date.today().year, ge=1900)
     
-    
-class NotasUpdate(BaseModel):
-    id: Optional[int] = None
-    matematicas: float
-    español: float
-    ed_fisica: float
-    sociales: float
-
-
-notas = [
-    
-    {
-        'id': 1,
-        'matematicas': 2.5,
-        'español': 3.9,
-        'ed fisica': 2.6,
-        'sociales': 2.2,
-        'promedio': (2.5 + 3.9 + 2.6 + 2.2)/4,
-        'estado': 'reprobado'
-    },
-        
-    {
-        'id': 2,
-        'matematicas': 2.5,
-        'español': 3.9,
-        'ed fisica': 4.6,
-        'sociales': 4.3,
-        'promedio': (2.5 + 3.9 + 4.6 + 4.3)/4,
-        'estado': 'aprobado'
+    model_config = {
+        'json_schema_extra':{
+            'example':{
+                
+                'id': 1,
+                'year': 2025,
+                'matematicas': 2.0,
+                'español': 2.9,
+                'ed_fisica': 2.3,
+                'sociales': 1.9,
+                'profesor': 'pancho',
+                
+            }   
+            
+        }
     }
-    
-]
 
+class notas(BaseModel):
+    id: int
+    matematicas: float
+    español: float
+    ed_fisica: float
+    sociales: float
+    
+class nota(BaseModel):
+    id: int
+    matematicas: float
+    español: float
+    ed_fisica: float
+    sociales: float
+    
+class nota_create(BaseModel):
+    id: Optional[int] = None
+    matematicas: float
+    español: float
+    ed_fisica: float
+    sociales: float
+    
+    
+class nota_update(BaseModel):
+    matematicas: float
+    español: float
+    ed_fisica: float
+    sociales: float
+
+notas: List[nota_mejorada] = []
 
 @app.get('/home', tags=['home'])
-def getCalificacion():
+def getCalificacion() -> List[nota_mejorada]:
     return notas
 
 @app.get('/notas', tags=['Notas'])
-def getCalificaciones():
+def getCalificaciones() -> List[nota]:
     return notas
+    
 
 @app.get('/ObtenerConId/{id}', tags=['Notas'])
-def getCalificacion(id: int) -> Organized:
+def getCalificacion(id: int) -> nota:
     
     for nota in notas:
         if nota['id'] == id:
@@ -65,7 +81,7 @@ def getCalificacion(id: int) -> Organized:
     
     
 @app.get('/Obetener_estado/', tags=['Notas'])
-def get_calificacion(Estado: str) -> Organized:
+def get_calificacion(Estado: str):
     
     resultado = []
     
@@ -79,9 +95,7 @@ def get_calificacion(Estado: str) -> Organized:
 
 @app.post('/Agregar_notas', tags=['Notas']) 
 
-def agregar(notes: Organized):
-    global promedio
-    global estado
+def agregar(notes: notas) -> List[nota]:
 
     promedio = (
         notes.matematicas +
@@ -91,7 +105,7 @@ def agregar(notes: Organized):
     )/4
     estado = 'aprobado' if promedio >= 3.0 else 'reprobado'
     
-    nueva = notes.model_dump()
+    nueva = notes
     nueva['promedio'] = promedio
     nueva['estado'] = estado
     
@@ -100,7 +114,7 @@ def agregar(notes: Organized):
 
 @app.put('/update/{id}', tags=['Notas'])
 
-def update(id: int, note: Organized) -> List[Organized]:
+def update(id: int, note: nota_update) -> List[nota]:
     
     for nota in notas:
         if nota['id'] == id:
@@ -126,7 +140,7 @@ def update(id: int, note: Organized) -> List[Organized]:
     return notas
 
 @app.delete('/notas/{id}', tags=['Notas'])
-def delete(id: int):
+def delete(id: int) -> List[nota]:
     
     for nota in notas:
         if nota['id'] == id:

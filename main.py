@@ -1,6 +1,6 @@
-from fastapi import FastAPI, Body
+from fastapi import FastAPI
 from pydantic import BaseModel #se crea para utilizar los items de manera interactiva
-from typing import Optional
+from typing import Optional, List
 app = FastAPI()
 
 
@@ -19,7 +19,8 @@ class NotasUpdate(BaseModel):
     español: float
     ed_fisica: float
     sociales: float
-    
+
+
 notas = [
     
     {
@@ -28,6 +29,8 @@ notas = [
         'español': 3.9,
         'ed fisica': 2.6,
         'sociales': 2.2,
+        'promedio': (2.5 + 3.9 + 2.6 + 2.2)/4,
+        'estado': 'reprobado'
     },
         
     {
@@ -36,16 +39,23 @@ notas = [
         'español': 3.9,
         'ed fisica': 4.6,
         'sociales': 4.3,
+        'promedio': (2.5 + 3.9 + 4.6 + 4.3)/4,
+        'estado': 'aprobado'
     }
     
 ]
-        
-@app.get('/Calificaciones', tags=['home'])
+
+
+@app.get('/home', tags=['home'])
 def getCalificacion():
     return notas
 
+@app.get('/notas', tags=['Notas'])
+def getCalificaciones():
+    return notas
+
 @app.get('/ObtenerConId/{id}', tags=['Notas'])
-def getCalificacion(id: int):
+def getCalificacion(id: int) -> Organized:
     
     for nota in notas:
         if nota['id'] == id:
@@ -55,7 +65,7 @@ def getCalificacion(id: int):
     
     
 @app.get('/Obetener_estado/', tags=['Notas'])
-def get_calificacion(Estado: str):
+def get_calificacion(Estado: str) -> Organized:
     
     resultado = []
     
@@ -72,7 +82,7 @@ def get_calificacion(Estado: str):
 def agregar(notes: Organized):
     global promedio
     global estado
-    
+
     promedio = (
         notes.matematicas +
         notes.español + 
@@ -90,9 +100,7 @@ def agregar(notes: Organized):
 
 @app.put('/update/{id}', tags=['Notas'])
 
-def update(
-    id: int, note: Organized
-):
+def update(id: int, note: Organized) -> List[Organized]:
     
     for nota in notas:
         if nota['id'] == id:
@@ -101,13 +109,24 @@ def update(
             nota['ed fisica'] = note.ed_fisica
             nota['sociales'] = note.sociales
     
+    promedio = (
+                note.matematicas + 
+                note.español + 
+                note.ed_fisica + 
+                note.sociales
+                ) / 4
+    
+    estado = 'aprobado' if promedio >= 3.0 else 'reprobado'
+
+    nueva = note.model_dump()
+    nueva['promedio'] = promedio
+    nueva['estado'] = estado
+
+    notas.append(nueva)
     return notas
-    
-    
+
 @app.delete('/notas/{id}', tags=['Notas'])
-def delete(
-    id: int
-):
+def delete(id: int):
     
     for nota in notas:
         if nota['id'] == id:

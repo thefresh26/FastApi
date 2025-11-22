@@ -1,5 +1,5 @@
-from fastapi import FastAPI
-from pydantic import BaseModel, Field #se crea para utilizar los items de manera interactiva
+from fastapi import FastAPI, Path, Query
+from pydantic import BaseModel, Field#se crea para utilizar los items de manera interactiva
 from typing import Optional, List
 import datetime
 
@@ -25,55 +25,51 @@ class nota_mejorada(BaseModel):
                 'ed_fisica': 2.3,
                 'sociales': 1.9,
                 'profesor': 'pancho',
-                
             }   
-            
         }
     }
 
-class notas(BaseModel):
-    id: int
-    matematicas: float
-    español: float
-    ed_fisica: float
-    sociales: float
-    
-class nota(BaseModel):
-    id: int
-    matematicas: float
-    español: float
-    ed_fisica: float
-    sociales: float
-    
-class nota_create(BaseModel):
+class nota_actulizar(BaseModel):
     id: Optional[int] = None
     matematicas: float
     español: float
     ed_fisica: float
     sociales: float
     
-    
-class nota_update(BaseModel):
+class nota_sin_id(BaseModel):
     matematicas: float
     español: float
     ed_fisica: float
     sociales: float
+    year: int
 
-notas: List[nota_mejorada] = []
+    model_config = {
+        'json_schema_extra': {
+            'example':{
+                'matematicas': 0,
+                'español': 0,
+                'ed_fisica': 0,
+                'sociales': 0,
+                'year': '1900 - 2025'
+            }
+        }
+    }
 
-@app.get('/home', tags=['home'])
-def getCalificacion() -> List[nota_mejorada]:
-    return notas
+base_notas: List[dict] = []
+
+@app.get('/Todo', tags=['home'])
+def getCalificacion() -> List[dict]:
+    return base_notas
 
 @app.get('/notas', tags=['Notas'])
-def getCalificaciones() -> List[nota]:
-    return notas
+def getCalificaciones() -> List[dict]:
+    return base_notas
     
 
 @app.get('/ObtenerConId/{id}', tags=['Notas'])
-def getCalificacion(id: int) -> nota:
+def getCalificacion(id: int = Path(gt=0)) -> dict:
     
-    for nota in notas:
+    for nota in base_notas:
         if nota['id'] == id:
             return nota
         
@@ -81,21 +77,19 @@ def getCalificacion(id: int) -> nota:
     
     
 @app.get('/Obetener_estado/', tags=['Notas'])
-def get_calificacion(Estado: str):
-    
-    resultado = []
-    
-    for calificacion in notas:
-        if calificacion['estado'].lower() == Estado.lower():
-            resultado.append(calificacion)
+def get_calificacion(Estado: str = Query(min_length=6,max_length=15)) -> dict:
 
-    return resultado
-
+    
+    
+    for nota in base_notas:
+        if nota['estado'] == Estado:
+            return nota
+        
+    return {}
 
 
 @app.post('/Agregar_notas', tags=['Notas']) 
-
-def agregar(notes: notas) -> List[nota]:
+def agregar(notes: nota_mejorada) -> List[dict]:
 
     promedio = (
         notes.matematicas +
@@ -105,18 +99,17 @@ def agregar(notes: notas) -> List[nota]:
     )/4
     estado = 'aprobado' if promedio >= 3.0 else 'reprobado'
     
-    nueva = notes
+    nueva = notes.model_dump()
     nueva['promedio'] = promedio
     nueva['estado'] = estado
     
-    notas.append(nueva)
-    return notas
+    base_notas.append(nueva)
+    return base_notas
 
 @app.put('/update/{id}', tags=['Notas'])
-
-def update(id: int, note: nota_update) -> List[nota]:
+def update(id: int, note: nota_sin_id) -> List[dict]:
     
-    for nota in notas:
+    for nota in base_notas:
         if nota['id'] == id:
             nota['matematicas'] = note.matematicas
             nota['español'] = note.español
@@ -136,14 +129,13 @@ def update(id: int, note: nota_update) -> List[nota]:
     nueva['promedio'] = promedio
     nueva['estado'] = estado
 
-    notas.append(nueva)
-    return notas
+    return base_notas
 
 @app.delete('/notas/{id}', tags=['Notas'])
-def delete(id: int) -> List[nota]:
+def delete(id: int) -> List[dict]:
     
-    for nota in notas:
+    for nota in base_notas:
         if nota['id'] == id:
-            notas.remove(nota)
+            base_notas.remove(nota)
             
-    return notas
+    return base_notas
